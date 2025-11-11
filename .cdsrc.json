@@ -7,6 +7,7 @@
     "html5-runtime": true,
     "[production]": {
       "auth": "xsuaa"
-    }
+    },
+    "destinations": true
   }
 }
