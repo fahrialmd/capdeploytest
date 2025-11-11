@@ -53,10 +53,12 @@ cds add mta --force
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "7. Build Fiori Apps"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+root = $pwd
 for d in app/*/; do 
     echo "Installing Node Package: $d"
     cd "$d"
     npm i
+    cd $root
 done;
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
