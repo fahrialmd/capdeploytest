@@ -1,70 +1,71 @@
 _schema-version: 3.3.0
 ID: capdeploytest
-description: A simple CAP project.
 version: 1.0.0-SNAPSHOT
+description: "A simple CAP project."
+parameters:
+  enable-parallel-deployments: true
+  deploy_mode: html5-repo
 modules:
   - name: capdeploytest-srv
     type: java
     path: srv
-    properties:
-      JBP_CONFIG_COMPONENTS: 'jres: [''com.sap.xs.java.buildpack.jre.SAPMachineJRE'']'
-      JBP_CONFIG_SAP_MACHINE_JRE: '{ version: 21.+ }'
-      SPRING_PROFILES_ACTIVE: cloud,sandbox
-    requires:
-      - name: capdeploytest-db
-      - name: capdeploytest-auth
-      - name: capdeploytest-destination-service
-    provides:
-      - name: srv-api
-        properties:
-          srv-url: ${default-url}
     parameters:
-      buildpack: sap_java_buildpack_jakarta
       instances: 1
+      buildpack: sap_java_buildpack_jakarta
+    properties:
+      SPRING_PROFILES_ACTIVE: cloud,sandbox
+      JBP_CONFIG_COMPONENTS: "jres: ['com.sap.xs.java.buildpack.jre.SAPMachineJRE']"
+      JBP_CONFIG_SAP_MACHINE_JRE: '{ version: 21.+ }'
     build-parameters:
-      build-result: target/*-exec.jar
       builder: custom
       commands:
         - mvn clean package -DskipTests=true --batch-mode
+      build-result: target/*-exec.jar
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: capdeploytest-auth
+      - name: capdeploytest-db
+      - name: capdeploytest-destination
+
   - name: capdeploytest-db-deployer
     type: hdb
     path: db
-    requires:
-      - name: capdeploytest-db
     parameters:
       buildpack: nodejs_buildpack
     build-parameters:
       builder: custom
       commands:
         - npm run build
+    requires:
+      - name: capdeploytest-db
+
   - name: capdeploytest
     type: approuter.nodejs
     path: app/router
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
     requires:
       - name: srv-api
         group: destinations
         properties:
-          forwardAuthToken: true
-          name: srv-api
+          name: srv-api # must be used in xs-app.json as well
           url: ~{srv-url}
-      - name: capdeploytest-html5-runtime
+          forwardAuthToken: true
       - name: capdeploytest-auth
-      - name: capdeploytest-destination-service
-        group: destinations
-        properties:
-          forwardAuthToken: false
-          name: ui5
-          url: https://ui5.sap.com
+      - name: capdeploytest-destination
+      - name: capdeploytest-html5-runtime
     provides:
       - name: app-api
         properties:
           app-protocol: ${protocol}
           app-uri: ${default-uri}
           url: ${default-url}
-    parameters:
-      disk-quota: 256M
-      keep-existing-routes: true
-      memory: 256M
+
   - name: capdeploytest-app-deployer
     type: com.sap.application.content
     path: .
@@ -73,51 +74,44 @@ modules:
       - name: srv-api
       - name: capdeploytest-html5-repo-host
         parameters:
+          content-target: true
           config:
             HTML5Runtime_enabled: true
-          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        - name: capdeploytestauthorsreport
+          artifacts:
+            - authorsreport.zip
+          target-path: resources
+        - name: capdeploytestbooksreport
+          artifacts:
+            - booksreport.zip
+          target-path: resources
+        - name: capdeploytestordersreport
+          artifacts:
+            - ordersreport.zip
+          target-path: resources
     parameters:
       config:
         HTML5Runtime_enabled: true
         init_data:
           instance:
-            destinations:
-              - Authentication: NoAuthentication
-                HTML5.DynamicDestination: true
-                HTML5.ForwardAuthToken: true
-                Name: srv-api
-                ProxyType: Internet
-                Type: HTTP
-                URL: ~{srv-api/srv-url}
-              - Authentication: NoAuthentication
-                Name: ui5
-                ProxyType: Internet
-                Type: HTTP
-                URL: https://ui5.sap.com
             existing_destinations_policy: update
-    build-parameters:
-      build-result: resources
-      requires:
-        - artifacts:
-            - authorsreport.zip
-          name: capdeploytestauthorsreport
-          target-path: resources
-        - artifacts:
-            - booksreport.zip
-          name: capdeploytestbooksreport
-          target-path: resources
-        - artifacts:
-            - ordersreport.zip
-          name: capdeploytestordersreport
-          target-path: resources
-        - artifacts:
-            - authorsreport.zip
-          name: authorsreport
-          target-path: resources/
-        - artifacts:
-            - booksreport.zip
-          name: booksreport
-          target-path: resources/
+            destinations:
+              - Name: srv-api
+                URL: ~{srv-api/srv-url}
+                Authentication: NoAuthentication
+                Type: HTTP
+                ProxyType: Internet
+                HTML5.ForwardAuthToken: true
+                HTML5.DynamicDestination: true
+              - Name: ui5
+                URL: https://ui5.sap.com
+                Authentication: NoAuthentication
+                Type: HTTP
+                ProxyType: Internet
+
   - name: capdeploytestauthorsreport
     type: html5
     path: app/authorsreport
@@ -147,32 +141,6 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
-        - npm run build
-      supported-platforms:
-        []
-  - name: authorsreport
-    type: html5
-    path: app/authorsreport
-    build-parameters:
-      build-result: dist
-      builder: custom
-      commands:
-        - npm install
-        - npm run build:cf
-        - npm ci
-        - npm run build
-      supported-platforms:
-        []
-  - name: booksreport
-    type: html5
-    path: app/booksreport
-    build-parameters:
-      build-result: dist
-      builder: custom
-      commands:
-        - npm install
-        - npm run build:cf
         - npm ci
         - npm run build
       supported-platforms:
@@ -209,12 +177,53 @@ modules:
               ServiceInstanceName: capdeploytest-auth
               ServiceKeyName: capdeploytest-auth-key
               sap.cloud.service: capdeploytest.service
+
 resources:
+  - name: capdeploytest-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: capdeploytest-${org}-${space}
+        tenant-mode: dedicated
+        oauth2-configuration:
+          redirect-uris:
+            - https://*~{app-api/app-uri}/**
+    requires:
+      - name: app-api
   - name: capdeploytest-db
     type: com.sap.xs.hdi-container
     parameters:
       service: hana
       service-plan: hdi-shared
+  - name: capdeploytest-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        HTML5Runtime_enabled: true
+        init_data:
+          instance:
+            existing_destinations_policy: update
+            destinations:
+              - Name: srv-api
+                URL: ~{srv-api/srv-url}
+                Authentication: NoAuthentication
+                Type: HTTP
+                ProxyType: Internet
+                HTML5.ForwardAuthToken: true
+                HTML5.DynamicDestination: true
+    requires:
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api # must be used in xs-app.json as well
+          url: ~{srv-url}
+          forwardAuthToken: true
+
   - name: capdeploytest-html5-repo-host
     type: org.cloudfoundry.managed-service
     parameters:
@@ -225,45 +234,3 @@ resources:
     parameters:
       service: html5-apps-repo
       service-plan: app-runtime
-  - name: capdeploytest-auth
-    type: org.cloudfoundry.managed-service
-    parameters:
-      config:
-        oauth2-configuration:
-          redirect-uris:
-            - https://*~{app-api/app-uri}/**
-        tenant-mode: dedicated
-        xsappname: capdeploytest-${org}-${space}
-      path: ./xs-security.json
-      service: xsuaa
-      service-plan: application
-    requires:
-      - name: app-api
-  - name: capdeploytest-destination-service
-    type: org.cloudfoundry.managed-service
-    parameters:
-      config:
-        HTML5Runtime_enabled: false
-        init_data:
-          instance:
-            destinations:
-              - Authentication: NoAuthentication
-                Name: ui5
-                ProxyType: Internet
-                Type: HTTP
-                URL: https://ui5.sap.com
-            existing_destinations_policy: update
-        version: 1.0.0
-      service: destination
-      service-name: capdeploytest-destination-service
-      service-plan: lite
-    requires:
-      - name: srv-api
-        group: destinations
-        properties:
-          name: srv-api # must be used in xs-app.json as well
-          url: ~{srv-url}
-          forwardAuthToken: true
-parameters:
-  deploy_mode: html5-repo
-  enable-parallel-deployments: true

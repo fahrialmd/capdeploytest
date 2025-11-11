@@ -6,6 +6,5 @@
       "destination": "srv-api",
       "csrfProtection": true
     }
-  ],
-  "welcomeFile": "/authorsreport"
+  ]
 }
