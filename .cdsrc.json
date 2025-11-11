@@ -4,6 +4,9 @@
     "[hybrid]": {
       "auth": "xsuaa"
     },
-    "html5-runtime": true
+    "html5-runtime": true,
+    "[production]": {
+      "auth": "xsuaa"
+    }
   }
 }

@@ -59,6 +59,7 @@ for d in app/*/; do
     npm i
     cd ../..
 done;
+npm i
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "8. Deployment"
