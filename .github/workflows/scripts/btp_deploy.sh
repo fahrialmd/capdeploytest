@@ -35,9 +35,7 @@ npm i -g @sap/cds-dk
 echo "Install MTA: "
 npm i -g mbt
 echo "Install Make: "
-if ! make -v >/dev/null 2>&1; then
-  sudo apt install -y build-essential
-fi
+sudo apt install -y build-essential
 echo "Install Yeoman: "
 npm i -g yo@4.3.1
 
@@ -58,16 +56,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 for d in app/*/; do 
     echo "Installing Node Package: $d"
     cd "$d"
-    
-    if [ ! -f package.json ]; then
-        continue
-    fi
-
-    if [ -f package-lock.json ]; then
-        npm ci
-    else
-        npm i
-    fi
+    npm i
 done;
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
