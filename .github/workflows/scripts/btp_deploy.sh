@@ -4,9 +4,9 @@ set -e
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "1. Install CF"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+sudo apt-get update
 wget -q -O - https://packages.cloudfoundry.org/debian/cli.cloudfoundry.org.key | sudo apt-key add -
 echo "deb https://packages.cloudfoundry.org/debian stable main" | sudo tee /etc/apt/sources.list.d/cloudfoundry-cli.list
-sudo apt-get update
 sudo apt-get install cf8-cli
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -26,6 +26,20 @@ echo "4. Login CF and Set Deployment Target"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 cf login -a $cf_api_url -u $cf_user -p $cf_password
 cf target -o $cf_org -s $cf_space
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "5. Installing tools"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Install CDS: "
+npm i -g @sap/cds-dk
+echo "Install MTA: "
+npm i -g mbt
+echo "Install Make: "
+if ! make -v >/dev/null 2>&1; then
+  sudo apt install -y build-essential
+fi
+echo "Install Yeoman: "
+npm i -g yo@4.3.1
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "5. Add CDS Deployment Dependencies"
