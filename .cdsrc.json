@@ -3,6 +3,7 @@
     "db": "hana",
     "[hybrid]": {
       "auth": "xsuaa"
-    }
+    },
+    "html5-runtime": true
   }
 }

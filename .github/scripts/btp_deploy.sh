@@ -22,14 +22,41 @@ cf install-plugin multiapps -f
 cf install-plugin html5-plugin -f
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "4. Build fiori apps"
+echo "4. Login CF and Set Deployment Target"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-npx mbt build --mtar app.mtar
-
-echo '############## Authorizations ##############'
-cf api $cf_api_url
-cf auth $cf_user "$cf_password"
-
-echo '############## Deploy ##############'
+cf login -a $cf_api_url -u $cf_user -p $cf_password
 cf target -o $cf_org -s $cf_space
-cf deploy mta_archives/app.mtar -f
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "5. Add CDS Deployment Dependencies"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+cds add workzone
+cds add xsuaa --production
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "6. Build MTA Configuration File"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+cds add mta --force
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "7. Build Fiori Apps"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+for d in app/*/; do 
+    echo "Installing Node Package: $d"
+    cd "$d"
+    
+    if [ ! -f package.json ]; then
+        continue
+    fi
+
+    if [ -f package-lock.json ]; then
+        npm ci
+    else
+        npm i
+    fi
+done;
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "8. Deployment"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+cds up
